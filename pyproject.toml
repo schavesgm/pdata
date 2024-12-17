@@ -1,0 +1,52 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=60.0.0"]
+
+[project]
+authors = [
+  {name = "Sergio Chaves García-Mascaraque", email = "s.garciamascaraque@instadeep.com"},
+]
+dependencies = [
+  "jax == 0.4.37",
+  "flax == 0.10.2",
+]
+description = "Environment to perform some toy-example generative modelling tasks."
+name = "pdata"
+readme = "README.md"
+requires-python = ">=3.12"
+version = "0.0.1"
+
+[project.optional-dependencies]
+gpu = ["jax[cuda12_pip] == 0.4.37"]
+
+[tool.ruff]
+line-length = 100
+show-fixes = true
+
+[tool.ruff.lint]
+ignore = ["ANN101", "ANN102", "ANN401"]
+select = [
+  "A",  # flake8-builtins
+  "ANN",  # flake8-annotations
+  "B",  # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "C90",  # mccabe
+  "D",  # pydocstyle
+  "E",  # pycodestyle: error
+  "F",  # Pyflakes
+  "I001",  # isort
+  "N",  # pep8-naming
+  "PT",  # flake8-pytest-style
+  "UP",  # pyupgrade
+  "W"  # pycodestyle: warning
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F403"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.setuptools.packages.find]
+include = ["pdata*"]
+namespaces = false
