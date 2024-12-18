@@ -1,13 +1,13 @@
 """Module containing functionality to sample data from different 2-dimensional distributions."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 
 import jax.numpy as jnp
 import jax.random as jr
 
 from .typing import Batched, Matrix, RandomKey, Vector
 
-__all__ = ["Sampler", "sample_from_checkerboard", "sample_from_gaussian"]
+__all__ = ["Sampler", "generate_batches", "sample_from_checkerboard", "sample_from_gaussian"]
 
 # Constants defining the standard normal mean and covariance matrix
 STANDARD_NORMAL_MEAN: Vector = jnp.array([0.0, 0.0])
@@ -19,6 +19,27 @@ SCALE_Y_AXIS: Vector = jnp.array([0.0, 1.0])
 
 # Type defining a simple sampler function
 type Sampler = Callable[[RandomKey, int], Batched[Vector]]
+
+
+def generate_batches(
+    rng_key: RandomKey, sampler: Sampler, batch_size: int
+) -> Generator[Batched[Vector], None, None]:
+    """Return a generator over batches sampled from a given distribution.
+
+    Warning:
+        ⚠️ This function produces a generator that never exhausts. Do not try to exhaust it.
+
+    Args:
+        rng_key (RandomKey): Key to use in the random engine.
+        sampler (Sampler): Sampler function generating the batch according to a given distribution.
+        batch_size (int): Number of samples to generate per batch.
+
+    Returns:
+        Generator[Batch[Vector], None, None]: Generator producing batches of data.
+    """
+    while True:
+        rng_key, sub_key = jr.split(rng_key)
+        yield sampler(sub_key, batch_size)
 
 
 def sample_from_gaussian(
