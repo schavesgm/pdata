@@ -59,7 +59,7 @@ def sample_from_gaussian(
     Returns:
         Batched[Vector]: Collection of samples from the 2-dimensional Gaussian distribution.
     """
-    return jr.multivariate_normal(rng_key, mean, covariance, (num_samples, 2))
+    return jr.multivariate_normal(rng_key, mean, covariance, (num_samples,))
 
 
 def sample_from_checkerboard(
