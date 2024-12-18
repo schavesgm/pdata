@@ -77,7 +77,7 @@ def sample_from_checkerboard(
         Batched[Vector]: Collection of samples from the checkerboard distribution.
     """
     # Generate the frequency used in the checkerboard pattern
-    frequency: float = (num_squares // 2) * jnp.pi
+    frequency: float = num_squares * jnp.pi
     min_frequency: float = -frequency
     max_frequency: float = frequency
 
@@ -90,8 +90,9 @@ def sample_from_checkerboard(
         jnp.logical_and(jnp.sin(points[:, 0]) < 0.0, jnp.sin(points[:, 1]) < 0.0),
     )
 
-    # Use the Y-symmetry to transform all points out-of-distribution to the pattern
-    points = jnp.where(is_checkerboard[:, None], points, FLIP_Y_AXIS * points + SCALE_Y_AXIS)
+    # Transform the points to the [0, 1] X [0, 1] area
+    points = (points - min_frequency) / (max_frequency - min_frequency)
 
-    # Transform the checkerboard to the 0-1 region
-    return (points - min_frequency) / (max_frequency - min_frequency)
+    # Use the Y-symmetry to transform all points out-of-distribution to the pattern
+    return jnp.where(is_checkerboard[:, None], points, FLIP_Y_AXIS * points + SCALE_Y_AXIS)
+
