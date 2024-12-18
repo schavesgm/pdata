@@ -13,6 +13,10 @@ __all__ = ["Sampler", "sample_from_checkerboard", "sample_from_gaussian"]
 STANDARD_NORMAL_MEAN: Vector = jnp.array([0.0, 0.0])
 STANDARD_NORMAL_COV: Matrix = jnp.identity(2)
 
+# Constants defining some transformations on points
+FLIP_Y_AXIS: Vector = jnp.array([1.0, -1.0])
+SCALE_Y_AXIS: Vector = jnp.array([0.0, 1.0])
+
 # Type defining a simple sampler function
 type Sampler = Callable[[RandomKey, int], Batched[Vector]]
 
@@ -66,7 +70,7 @@ def sample_from_checkerboard(
     )
 
     # Use the Y-symmetry to transform all points out-of-distribution to the pattern
-    points = jnp.where(is_checkerboard[:, None], points, jnp.array([0, frequency / 2]) - points)
+    points = jnp.where(is_checkerboard[:, None], points, FLIP_Y_AXIS * points + SCALE_Y_AXIS)
 
     # Transform the checkerboard to the 0-1 region
     return (points - min_frequency) / (max_frequency - min_frequency)
