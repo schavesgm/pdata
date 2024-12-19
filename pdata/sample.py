@@ -7,7 +7,14 @@ import jax.random as jr
 
 from .typing import Batched, Matrix, RandomKey, Vector
 
-__all__ = ["Sampler", "generate_batches", "sample_from_checkerboard", "sample_from_gaussian"]
+__all__ = [
+    "Sampler",
+    "generate_batches",
+    "generate_dataset",
+    "sample_from_checkerboard",
+    "sample_from_gaussian",
+    "sample_from_swiss_roll",
+]
 
 # Constants defining the standard normal mean and covariance matrix
 STANDARD_NORMAL_MEAN: Vector = jnp.array([0.0, 0.0])
@@ -19,6 +26,34 @@ SCALE_Y_AXIS: Vector = jnp.array([0.0, 1.0])
 
 # Type defining a simple sampler function
 type Sampler = Callable[[RandomKey, int], Batched[Vector]]
+
+
+def generate_dataset(
+    rng_key: RandomKey,
+    target_sampler: Sampler,
+    num_entries: int,
+    batch_size: int,
+) -> list[Batched[Vector]]:
+    """Return a dataset by sampling some data from a target and source distribution.
+
+    Args:
+        rng_key (RandomKey): Key to use in the random engine.
+        target_sampler (Sampler): Sampler function to generate samples from the target distribution.
+        num_entries (int): Number of entries in the dataset.
+        batch_size (int): Number of elements per batch.
+
+    Returns:
+        list[Batched[Vector]]: List containing the dataset entries.
+    """
+    num_generated: int = 0
+    dataset: list[Batched[Vector]] = []
+    for targets in generate_batches(rng_key, target_sampler, batch_size):
+        dataset.append(targets)
+        num_generated += batch_size
+        if num_generated >= num_entries:
+            break
+
+    return dataset
 
 
 def generate_batches(
@@ -123,4 +158,3 @@ def sample_from_checkerboard(
 
     # Use the Y-symmetry to transform all points out-of-distribution to the pattern
     return jnp.where(is_checkerboard[:, None], points, FLIP_Y_AXIS * points + SCALE_Y_AXIS)
-
