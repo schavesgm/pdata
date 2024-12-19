@@ -61,6 +61,34 @@ def sample_from_gaussian(
     """
     return jr.multivariate_normal(rng_key, mean, covariance, (num_samples,))
 
+def sample_from_swiss_roll(
+    rng_key: RandomKey, num_samples: int, noise_std: float = 0.05
+) -> Batched[Vector]:
+    """Return some samples from the swiss-roll dataset.
+
+    Note:
+        This function is inspired by the one in `sklearn
+        <https://scikit-learn.org/1.5/modules/generated/sklearn.datasets.make_swiss_roll.html>`_.
+
+    Args:
+        rng_key (RandomKey): Key to use in the random engine.
+        num_samples (int): Number of samples to generate.
+        noise_std (float): Standard deviation of the noise added to the dataset.
+
+    Returns:
+        Batched[Vector]: Collection of points sampled from the swiss-roll distribution.
+    """
+    rng_key_1, rng_key_2 = jr.split(rng_key)
+
+    # Generate the x-values to be used to generate the function
+    x_values = (3.0 * jnp.pi / 3.0) * (1.0 + 2.0 * jr.uniform(rng_key_1, (num_samples, 1)))
+
+    # Generate the y-values of the swiss roll and add some noise to them
+    y_values = jnp.concatenate([x_values * jnp.cos(x_values), x_values * jnp.sin(x_values)], axis=1)
+    y_values = y_values + noise_std * jr.normal(rng_key_2, (num_samples, 2))
+
+    return y_values
+
 
 def sample_from_checkerboard(
     rng_key: RandomKey, num_samples: int, num_squares: int = 2
