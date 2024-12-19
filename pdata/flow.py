@@ -8,7 +8,7 @@ from flax import nnx
 
 from pdata.typing import Batched, Scalar, Vector
 
-__all__ = ["VectorFieldModel", "compute_optimal_transport_loss"]
+__all__ = ["VectorFieldModel", "compute_optimal_transport_loss", "generate_trajectory"]
 
 
 # Constant defining the default number of encoding dimensions of scalars
@@ -92,6 +92,37 @@ def compute_optimal_transport_loss(
 
     # NOTE: doing this yields better training than doing ``mean(linalg.norm(a - b, axis=-1))``
     return jnp.mean(jnp.square(vf_pred - vf_target))
+
+
+def generate_trajectory(
+    model: VectorFieldModel, source_samples: Batched[Vector], num_steps: int
+) -> Batched[Vector]:
+    """Return the flow-matching trajectory from source to data by integrating the FM-ODE.
+
+    Note:
+        This function uses the Euler method to integrate the trajectory.
+
+    Args:
+        model (VectorFieldModel): Vector field model used to instantiate the trajectory.
+        source_samples (Batched[Vector]): Collection of initial points to use in the trajectory.
+        num_steps (int): Number of steps to use in the integrator.
+
+    Returns:
+        Batched[Vector]: Integrated trajectory with dimensions ``(num_steps, num_samples, 2)``.
+    """
+    delta_step: float = 1.0 / num_steps
+    num_samples: int = source_samples.shape[0]
+
+    @jax.jit
+    def _evaluate_ode(samples: Batched[Vector], time: Scalar) -> Batched[Vector]:
+        """Return the evaluated ODE at a given time for a given set of samples."""
+        return model(samples, time * jnp.ones((num_samples, 1))) * delta_step
+
+    trajectory: list[Batched[Vector]] = [source_samples]
+    for time in jnp.linspace(0.0, 1.0, num_steps):
+        source_samples = source_samples + _evaluate_ode(source_samples, time)
+        trajectory.append(source_samples)
+    return jnp.stack(trajectory, axis=0)
 
 
 @partial(jax.vmap, in_axes=(0, 0, 0, None))
