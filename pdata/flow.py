@@ -6,13 +6,14 @@ import jax
 import jax.numpy as jnp
 from flax import nnx
 
-from pdata.typing import Batched, Scalar, Vector
+from .encode import DEFAULT_SCALAR_ENCODING_DIM, encode_scalar
+from .typing import Batched, Scalar, Vector
 
 __all__ = ["VectorFieldModel", "compute_optimal_transport_loss", "generate_trajectory"]
 
 
-# Constant defining the default number of encoding dimensions of scalars
-SCALAR_ENCODING_DIM: int = 32
+# Vectorised version of the ``encode_scalar`` function
+_encode_time = jax.vmap(encode_scalar, in_axes=(0, None))
 
 
 class VectorFieldModel(nnx.Module):
@@ -35,7 +36,7 @@ class VectorFieldModel(nnx.Module):
         ]
 
         self._layers = nnx.Sequential(
-            nnx.Linear(2 + SCALAR_ENCODING_DIM, 512, rngs=rngs),
+            nnx.Linear(2 + DEFAULT_SCALAR_ENCODING_DIM, 512, rngs=rngs),
             nnx.leaky_relu,
             *inner_layers,
             nnx.Linear(512, 2, rngs=rngs),
@@ -53,8 +54,9 @@ class VectorFieldModel(nnx.Module):
         Returns:
             Batched[Vector]: Transformed inputs.
         """
-        inputs = jnp.concatenate([inputs, _encode_scalar(times, SCALAR_ENCODING_DIM)], axis=-1)
-        return self._layers(inputs)
+        return self._layers(
+            jnp.concatenate([inputs, _encode_time(times, DEFAULT_SCALAR_ENCODING_DIM)], axis=-1)
+        )
 
 
 def compute_optimal_transport_loss(
@@ -146,18 +148,3 @@ def _compute_optimal_transport_flow(
         Vector: Result of applying the conditional flow at a given time.
     """
     return (1.0 - (1.0 - sigma_1) * time) * sample + time * target_sample
-
-
-@partial(jax.vmap, in_axes=(0, None))
-def _encode_scalar(scalar: Scalar, encoding_dim: int) -> Vector:
-    """Return an encoded version of an scalar using frequencies.
-
-    Args:
-        scalar (Scalar): Scalar to encode.
-        encoding_dim (int): Total number of dimensions of the output vector.
-
-    Returns:
-        Vector: Encoded version of the input scalar.
-    """
-    frequencies = 2.0 * jnp.arange(encoding_dim // 2) * jnp.pi * scalar
-    return jnp.concatenate([jnp.sin(frequencies), jnp.cos(frequencies)], axis=-1)
