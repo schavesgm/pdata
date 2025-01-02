@@ -13,17 +13,20 @@ __all__ = ["TimeSampler", "sample_time_uniform", "sample_time_flow_matching"]
 type TimeSampler = Callable[[RandomKey, int], Batched[Scalar]]
 
 
-def sample_time_uniform(rng_key: RandomKey, num_samples: int) -> Batched[Scalar]:
+def sample_time_uniform(
+    rng_key: RandomKey, num_samples: int, min_value: float = 0.0
+) -> Batched[Scalar]:
     """Return some sampled time variables uniformly sampled in :math:`[0, 1]`.
 
     Args:
         rng_key (RandomKey): Key to use in the random engine.
         num_samples (int): Number of samples to generate.
+        min_value (float): Minimum value allowed.
 
     Returns:
         Batched[Scalar]: Sampled times to generate.
     """
-    return jr.uniform(rng_key, (num_samples,))
+    return jr.uniform(rng_key, (num_samples,), minval=min_value, maxval=1.0)
 
 
 def sample_time_flow_matching(
